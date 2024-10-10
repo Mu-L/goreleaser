@@ -15,6 +15,7 @@ import (
 	"github.com/caarlos0/log"
 	"github.com/goreleaser/goreleaser/v2/internal/artifact"
 	"github.com/goreleaser/goreleaser/v2/internal/builders/buildtarget"
+	"github.com/goreleaser/goreleaser/v2/internal/experimental"
 	"github.com/goreleaser/goreleaser/v2/internal/gio"
 	"github.com/goreleaser/goreleaser/v2/internal/logext"
 	"github.com/goreleaser/goreleaser/v2/internal/tmpl"
@@ -63,7 +64,7 @@ func (*Builder) WithDefaults(build config.Build) (config.Build, error) {
 			build.Goarch = []string{"amd64", "arm64", "386"}
 		}
 		if len(build.Goarm) == 0 {
-			build.Goarm = []string{"6"}
+			build.Goarm = []string{experimental.DefaultGOARM()}
 		}
 		if len(build.Gomips) == 0 {
 			build.Gomips = []string{"hardfloat"}
@@ -182,7 +183,7 @@ func (*Builder) Build(ctx *context.Context, build config.Build, options api.Opti
 		a.Type = artifact.CArchive
 		ctx.Artifacts.Add(getHeaderArtifactForLibrary(build, options))
 	}
-	if build.Buildmode == "c-shared" {
+	if build.Buildmode == "c-shared" && !strings.Contains(options.Target, "wasm") {
 		a.Type = artifact.CShared
 		ctx.Artifacts.Add(getHeaderArtifactForLibrary(build, options))
 	}
@@ -365,6 +366,11 @@ func processFlags(ctx *context.Context, a *artifact.Artifact, env, flags []strin
 		if err != nil {
 			return nil, err
 		}
+
+		if flag == "" {
+			continue
+		}
+
 		processed = append(processed, flagPrefix+flag)
 	}
 	return processed, nil

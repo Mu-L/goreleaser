@@ -155,12 +155,14 @@ func TestPublishPipeNoMatchingBuild(t *testing.T) {
 }
 
 func TestPublishPipeSuccess(t *testing.T) {
+	testlib.CheckPath(t, "docker")
 	testlib.StartRegistry(t, "ko_registry", registryPort)
 
 	chainguardStaticLabels := map[string]string{
 		"org.opencontainers.image.authors": "Chainguard Team https://www.chainguard.dev/",
 		"org.opencontainers.image.source":  "https://github.com/chainguard-images/images/tree/main/images/static",
-		"org.opencontainers.image.url":     "https://edu.chainguard.dev/chainguard/chainguard-images/reference/static/",
+		"org.opencontainers.image.url":     "https://images.chainguard.dev/directory/image/static/overview",
+		"org.opencontainers.image.vendor":  "Chainguard",
 	}
 
 	table := []struct {
@@ -373,6 +375,41 @@ func TestPublishPipeSuccess(t *testing.T) {
 			require.Equal(t, koDataCreationTime, configFile.History[len(configFile.History)-2].Created.Time.UTC())
 		})
 	}
+}
+
+func TestSnapshot(t *testing.T) {
+	ctx := testctx.NewWithCfg(config.Project{
+		ProjectName: "test",
+		Builds: []config.Build{
+			{
+				ID: "foo",
+				BuildDetails: config.BuildDetails{
+					Ldflags: []string{"-s", "-w"},
+					Flags:   []string{"-tags", "netgo"},
+					Env:     []string{"GOCACHE=" + t.TempDir()},
+				},
+			},
+		},
+		Kos: []config.Ko{
+			{
+				ID:         "default",
+				Build:      "foo",
+				Repository: "testimage",
+				WorkingDir: "./testdata/app/",
+				Tags:       []string{"latest"},
+			},
+		},
+	}, testctx.WithVersion("1.2.0"), testctx.Snapshot)
+
+	require.NoError(t, Pipe{}.Default(ctx))
+	require.NoError(t, Pipe{}.Run(ctx))
+
+	manifests := ctx.Artifacts.Filter(artifact.ByType(artifact.DockerManifest)).List()
+	require.Len(t, manifests, 1)
+	require.NotEmpty(t, manifests[0].Name)
+	require.Equal(t, manifests[0].Name, manifests[0].Path)
+	require.NotEmpty(t, manifests[0].Extra[artifact.ExtraDigest])
+	require.Equal(t, "default", manifests[0].Extra[artifact.ExtraID])
 }
 
 func TestKoValidateMainPathIssue4382(t *testing.T) {

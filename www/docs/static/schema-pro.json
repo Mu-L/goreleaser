@@ -384,6 +384,9 @@
 							"$ref": "#/$defs/TemplatedExtraFile"
 						},
 						"type": "array"
+					},
+					"if": {
+						"type": "string"
 					}
 				},
 				"additionalProperties": false,
@@ -470,7 +473,14 @@
 						"type": "string"
 					},
 					"skip": {
-						"type": "boolean"
+						"oneOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "boolean"
+							}
+						]
 					},
 					"gobinary": {
 						"type": "string"
@@ -479,7 +489,14 @@
 						"type": "string"
 					},
 					"no_unique_dist_dir": {
-						"type": "boolean"
+						"oneOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "boolean"
+							}
+						]
 					},
 					"no_main_check": {
 						"type": "boolean"

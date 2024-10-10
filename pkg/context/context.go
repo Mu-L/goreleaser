@@ -102,6 +102,7 @@ type Context struct {
 	Snapshot          bool
 	FailFast          bool
 	Partial           bool
+	SingleTarget      bool
 	SkipTokenCheck    bool
 	Clean             bool
 	PreRelease        bool
@@ -160,6 +161,9 @@ func ToEnv(env []string) Env {
 		k, v, ok := strings.Cut(e, "=")
 		if !ok || k == "" {
 			continue
+		}
+		if k == "GORELEASER_EXPERIMENTAL" {
+			os.Setenv(k, v)
 		}
 		r[k] = v
 	}
