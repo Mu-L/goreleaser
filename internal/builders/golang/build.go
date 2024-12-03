@@ -30,6 +30,12 @@ import (
 //nolint:gochecknoglobals
 var Default = &Builder{}
 
+// type constraints
+var (
+	_ api.Builder          = &Builder{}
+	_ api.DependingBuilder = &Builder{}
+)
+
 //nolint:gochecknoinits
 func init() {
 	api.Register("go", Default)
@@ -37,6 +43,11 @@ func init() {
 
 // Builder is golang builder.
 type Builder struct{}
+
+// Dependencies implements build.DependingBuilder.
+func (b *Builder) Dependencies() []string {
+	return []string{"go"}
+}
 
 // Parse implements build.Builder.
 func (b *Builder) Parse(target string) (api.Target, error) {
@@ -80,8 +91,8 @@ func (b *Builder) Parse(target string) (api.Target, error) {
 
 // WithDefaults sets the defaults for a golang build and returns it.
 func (*Builder) WithDefaults(build config.Build) (config.Build, error) {
-	if build.GoBinary == "" {
-		build.GoBinary = "go"
+	if build.Tool == "" {
+		build.Tool = "go"
 	}
 	if build.Command == "" {
 		build.Command = "build"
@@ -144,6 +155,13 @@ func (*Builder) WithDefaults(build config.Build) (config.Build, error) {
 			targets[fixTarget(target)] = true
 		}
 		build.Targets = slices.Collect(maps.Keys(targets))
+	}
+
+	for _, o := range build.BuildDetailsOverrides {
+		if o.Goos == "" || o.Goarch == "" {
+			log.Warn("overrides must set, at least, both 'goos' and 'goarch'")
+			break
+		}
 	}
 	return build, nil
 }
@@ -324,12 +342,12 @@ func withOverrides(ctx *context.Context, build config.Build, target Target) (con
 
 		if optsTarget == overrideTarget {
 			dets := config.BuildDetails{
-				Buildmode: build.BuildDetails.Buildmode,
-				Ldflags:   build.BuildDetails.Ldflags,
-				Tags:      build.BuildDetails.Tags,
-				Flags:     build.BuildDetails.Flags,
-				Asmflags:  build.BuildDetails.Asmflags,
-				Gcflags:   build.BuildDetails.Gcflags,
+				Buildmode: build.Buildmode,
+				Ldflags:   build.Ldflags,
+				Tags:      build.Tags,
+				Flags:     build.Flags,
+				Asmflags:  build.Asmflags,
+				Gcflags:   build.Gcflags,
 			}
 			if err := mergo.Merge(&dets, o.BuildDetails, mergo.WithOverride); err != nil {
 				return build.BuildDetails, err
@@ -339,6 +357,7 @@ func withOverrides(ctx *context.Context, build config.Build, target Target) (con
 			log.WithField("details", dets).Infof("overridden build details for %s", optsTarget)
 			return dets, nil
 		}
+		log.Debugf("targets don't match: %s != %s", optsTarget, overrideTarget)
 	}
 
 	return build.BuildDetails, nil
@@ -352,7 +371,7 @@ func buildGoBuildLine(
 	artifact *artifact.Artifact,
 	env []string,
 ) ([]string, error) {
-	gobin, err := tmpl.New(ctx).WithBuildOptions(options).Apply(build.GoBinary)
+	gobin, err := tmpl.New(ctx).WithBuildOptions(options).Apply(build.Tool)
 	if err != nil {
 		return nil, err
 	}
