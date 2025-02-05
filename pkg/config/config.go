@@ -16,6 +16,7 @@ import (
 
 type Versioned struct {
 	Version int
+	Pro     bool
 }
 
 // Git configs.
@@ -1259,6 +1260,7 @@ type Upload struct {
 	CustomHeaders      map[string]string `yaml:"custom_headers,omitempty" json:"custom_headers,omitempty"`
 	ExtraFiles         []ExtraFile       `yaml:"extra_files,omitempty" json:"extra_files,omitempty"`
 	ExtraFilesOnly     bool              `yaml:"extra_files_only,omitempty" json:"extra_files_only,omitempty"`
+	Skip               string            `yaml:"skip,omitempty" json:"skip,omitempty" jsonschema:"oneof_type=string;boolean"`
 }
 
 // Publisher configuration.
@@ -1287,6 +1289,7 @@ type Source struct {
 // Project includes all project configuration.
 type Project struct {
 	Version         int              `yaml:"version,omitempty" json:"version,omitempty" jsonschema:"enum=2,default=2"`
+	Pro             bool             `yaml:"pro,omitempty" json:"pro,omitempty"`
 	ProjectName     string           `yaml:"project_name,omitempty" json:"project_name,omitempty"`
 	Env             []string         `yaml:"env,omitempty" json:"env,omitempty"`
 	Release         Release          `yaml:"release,omitempty" json:"release,omitempty"`
